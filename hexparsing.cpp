@@ -20,14 +20,14 @@ HexParsing::HexParsing(string file_path_name, unsigned int origin_address,
      len(data_length)
 {
     //设置数据表大小，并全部初始化为1
-    map.resize(data_length*1024, fill_value);
+    data_vec.resize(data_length*1024, fill_value);
     error_code = 0;
 }
 
 bool HexParsing::Convert()
 {
     char buf[75];  //hex每一行的数据
-    lineData line_data;
+    lineForm line_data;
     Addr addr_t; //32位地址
 
     ifstream in_file(file);
@@ -36,40 +36,69 @@ bool HexParsing::Convert()
         return false;
     }
 
+    int line_number = 1;  //记录行数
     in_file.getline(buf, 50);
     while(!in_file.eof()) {
         if(buf[0] == ':') {
             //将文件字符数据转换为整型数据
             if(CharBuffer2HexData(buf, &line_data)) {
-                if(line_data.l_check == )
+                //数据校验
+                if(CheckData(&line_data)) {
+                    if(line_data)
+                } else {
+                    error_code = FILE_LINE_CHECK_ERROR;
+                    rec = line_number;
+                    return false;
+                }
             } else {
                 error_code = FILE_LINE_CONVERT_ERROR;
+                rec = line_number;
                 return false;
             }
         } else {
             error_code = FILE_GETLINE_ERROR;
+            rec = line_number;
             return false;
         }
         
         in_file.getline(buf, 139);
+        line_number++;
     }
 }
 
-bool HexParsing::CheckData(pLineData data)
+bool HexParsing::MappedData(pLineForm data)
 {
     
 }
 
-bool HexParsing::CharBuffer2HexData(char* buf, pLineData data)
+bool HexParsing::CheckData(pLineForm data)
 {
-    data->l_len = Char2IntByte(buf[1], buf[2]);  //数据长度
-    unsigned short int len_t = data->l_len * 2 + 11;  //buf长度
+    int sum;
+    sum += data->l_len * 2;
+    sum = sum +  (data->l_addr & 0xFF) + ((data->l_addr >> 8) & 0xFF);
+    sum += data->l_type;
+    for (int i = 0; i < data->l_len; ++i) {
+        sum = sum + (data->l_data[i] & 0x00FF) + ((data->l_data[i] >> 8) & 0x00FF);
+    }
+
+    sum = 0x100 - (sum & 0x00FF);
+    if(sum == data->l_check) {
+        return true;
+    } else {
+        return false;
+    }
+}
+
+bool HexParsing::CharBuffer2HexData(char* buf, pLineForm data)
+{
+    data->l_len = Char2IntByte(buf[1], buf[2]) / 2;  //数据长度，按16位(2字节)长度计算
+    unsigned short int len_t = data->l_len * 4 + 11;  //buf长度
     data->l_addr = Char2ShortInt(buf[3], buf[4], buf[5], buf[6]);  //地址
     data->l_type = Char2IntByte(buf[7], buf[8]);  //记录类型
 
     int j = 9;  //第10个值开始为数据
     // 转换数据
-    for(int i = 0; i < (data->l_len/2); ++i) {
+    for(int i = 0; i < data->l_len; ++i) {
         data->l_data[i] = Char2ShortInt(buf[j], buf[j+1], buf[j+2], buf[j+3]);
         j += 4;
     }
@@ -90,9 +119,7 @@ unsigned short int HexParsing::Char2ShortInt(char d_4, char d_3, char d_2, char 
 
 unsigned short int HexParsing::Char2IntByte(char d_h, char d_l)
 {
-    unsigned short int hi = Char2Int(d_h);
-    unsigned short int lo = Char2Int(d_l);
-    return (hi*16+lo);
+    return (Char2Int(d_h) << 4 | Char2Int(d_l));
 }
 
 unsigned short int HexParsing::Char2Int(char ch)
