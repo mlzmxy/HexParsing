@@ -62,7 +62,7 @@ bool HexParsing::Convert()
 	}
 
 	int i_char_num = 0;  //读取的行数据长度，最少为11
-	int line_number = 1;  //记录行数
+    unsigned int line_number = 1;  //记录行数
 	int file_end_flag = 0;  //hex文件结束行(:00000001FF)标志
 	in_file.getline(buf, 50);
 	while (!in_file.eof()) {
@@ -212,7 +212,7 @@ bool HexParsing::MappedData(PLineForm data, PAddr addr)
 
 	unsigned int distance = addr->addr_32 - addr_origin.addr_32;
 
-	for (int i = 0; i < data->l_len; ++i) {
+    for (unsigned int i = 0; i < data->l_len; ++i) {
 		try {
 			data_vec.at(distance + i) = data->l_data[i];
 		}
@@ -278,7 +278,6 @@ bool HexParsing::CharBuffer2HexData(char* buf, PLineForm data)
 		return false;
 	}
 	data->l_len = data->l_len / 2;  //按16位(2字节)长度计算
-	unsigned short int len_t = data->l_len * 4 + 11;  //buf长度
 	data->l_addr = Char2ShortInt(buf[3], buf[4], buf[5], buf[6]);  //地址
 	data->l_type = Char2IntByte(buf[7], buf[8]);  //记录类型
 
